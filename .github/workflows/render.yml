@@ -3,6 +3,9 @@ name: Render video
 on:
   workflow_dispatch:
     inputs:
+      id:
+        description: "unique id for this video"
+        required: true
       theme:
         description: "progress or newstart"
         required: true
@@ -12,6 +15,9 @@ on:
       line2:
         description: "second line of the quote"
         required: true
+
+permissions:
+  contents: write
 
 jobs:
   render:
@@ -32,11 +38,13 @@ jobs:
           fc-cache -f
 
       - name: Draw the video
-        run: |
-          python render.py --theme "${{ inputs.theme }}" --line1 "${{ inputs.line1 }}" --line2 "${{ inputs.line2 }}" --out out/video.mp4
+        env:
+          THEME: ${{ inputs.theme }}
+          L1: ${{ inputs.line1 }}
+          L2: ${{ inputs.line2 }}
+        run: python render.py --theme "$THEME" --line1 "$L1" --line2 "$L2" --out out/video.mp4
 
-      - name: Save the video
-        uses: actions/upload-artifact@v4
-        with:
-          name: video
-          path: out/video.mp4
+      - name: Publish the video
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: gh release create "video-${{ inputs.id }}" out/video.mp4 --title "video-${{ inputs.id }}" --notes "daily video"
